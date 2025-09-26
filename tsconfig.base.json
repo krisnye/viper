@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ESNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "stripInternal": true,
+    "removeComments": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "composite": false,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "lib": ["ES2024", "DOM", "DOM.Iterable", "esnext"],
+    "types": ["@webgpu/types", "lit"],
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "outDir": "./lib",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+  ],
+  "exclude": [
+    "node_modules",
+    "lib"
+  ]
+} 
