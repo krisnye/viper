@@ -85,7 +85,7 @@ export const graphicsStoreSchema = createStoreSchema(
             } satisfies Camera
         },
         timeScale: { ...F32.schema, default: 1.0 },
-        lightDirection: { ...Vec3.schema, default: Vec3.normalize([1, 2, 5.0]) },
+        lightDirection: { ...Vec3.schema, default: Vec3.normalize([-1, -3, -10]) },
         ambientStrength: { ...F32.schema, default: 0.5 },
         lightColor: { ...Vec3.schema, default: [1.2, 1.2, 1.2] },
         // valid during update phase

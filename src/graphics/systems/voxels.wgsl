@@ -31,6 +31,28 @@ const CUBE_VERTICES: array<vec3<f32>, 36> = array<vec3<f32>, 36>(
     vec3<f32>(-0.5, -0.5, -0.5), vec3<f32>( 0.5, -0.5,  0.5), vec3<f32>(-0.5, -0.5,  0.5),
 );
 
+// Face normals for each vertex (matching the vertex order)
+const CUBE_NORMALS: array<vec3<f32>, 36> = array<vec3<f32>, 36>(
+    // Front face (normal: 0, 0, 1)
+    vec3<f32>( 0.0,  0.0,  1.0), vec3<f32>( 0.0,  0.0,  1.0), vec3<f32>( 0.0,  0.0,  1.0),
+    vec3<f32>( 0.0,  0.0,  1.0), vec3<f32>( 0.0,  0.0,  1.0), vec3<f32>( 0.0,  0.0,  1.0),
+    // Back face (normal: 0, 0, -1)
+    vec3<f32>( 0.0,  0.0, -1.0), vec3<f32>( 0.0,  0.0, -1.0), vec3<f32>( 0.0,  0.0, -1.0),
+    vec3<f32>( 0.0,  0.0, -1.0), vec3<f32>( 0.0,  0.0, -1.0), vec3<f32>( 0.0,  0.0, -1.0),
+    // Left face (normal: -1, 0, 0)
+    vec3<f32>(-1.0,  0.0,  0.0), vec3<f32>(-1.0,  0.0,  0.0), vec3<f32>(-1.0,  0.0,  0.0),
+    vec3<f32>(-1.0,  0.0,  0.0), vec3<f32>(-1.0,  0.0,  0.0), vec3<f32>(-1.0,  0.0,  0.0),
+    // Right face (normal: 1, 0, 0)
+    vec3<f32>( 1.0,  0.0,  0.0), vec3<f32>( 1.0,  0.0,  0.0), vec3<f32>( 1.0,  0.0,  0.0),
+    vec3<f32>( 1.0,  0.0,  0.0), vec3<f32>( 1.0,  0.0,  0.0), vec3<f32>( 1.0,  0.0,  0.0),
+    // Top face (normal: 0, 1, 0)
+    vec3<f32>( 0.0,  1.0,  0.0), vec3<f32>( 0.0,  1.0,  0.0), vec3<f32>( 0.0,  1.0,  0.0),
+    vec3<f32>( 0.0,  1.0,  0.0), vec3<f32>( 0.0,  1.0,  0.0), vec3<f32>( 0.0,  1.0,  0.0),
+    // Bottom face (normal: 0, -1, 0)
+    vec3<f32>( 0.0, -1.0,  0.0), vec3<f32>( 0.0, -1.0,  0.0), vec3<f32>( 0.0, -1.0,  0.0),
+    vec3<f32>( 0.0, -1.0,  0.0), vec3<f32>( 0.0, -1.0,  0.0), vec3<f32>( 0.0, -1.0,  0.0)
+);
+
 struct VoxelPosition {
     x: f32,
     y: f32,
@@ -64,8 +86,8 @@ fn vertexMain(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) 
     let worldPosition = vec3<f32>(voxelPosition.x, voxelPosition.y, voxelPosition.z) + vertex; // Unit cube vertices
     let clipPosition = sceneUniforms.viewProjectionMatrix * vec4<f32>(worldPosition, 1.0);
     
-    // Calculate normal (simplified - using the vertex as normal for now)
-    let normal = normalize(vertex);
+    // Use proper face normal
+    let normal = CUBE_NORMALS[vertexIndex];
     
     return VertexOutput(
         clipPosition,
@@ -81,15 +103,20 @@ struct FragmentOutput {
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> FragmentOutput {
-    // Simple lighting calculation
-    let lightDir = normalize(sceneUniforms.lightDirection);
-    let normal = normalize(input.normal);
-    let lightIntensity = max(dot(normal, -lightDir), 0.0);
+    // Normalize vectors
+    let N = normalize(input.normal);
+    let L = normalize(-sceneUniforms.lightDirection); // Light direction (toward light)
     
+    // Ambient lighting
     let ambient = sceneUniforms.ambientStrength;
-    let diffuse = lightIntensity;
+    
+    // Diffuse lighting (Lambert)
+    let diffuse = max(dot(N, L), 0.0);
+    
+    // Combine lighting
     let lighting = ambient + diffuse;
     
+    // Apply lighting to color
     let finalColor = input.color * lighting;
     
     return FragmentOutput(finalColor);
