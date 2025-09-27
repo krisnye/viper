@@ -5,6 +5,7 @@ import { toViewProjection } from "graphics/camera/to-view-projection.js";
 import { F32, Mat4x4, Vec3 } from "@adobe/data/math";
 import { createStructBuffer, copyToGPUBuffer, TypedBuffer, getStructLayout } from "@adobe/data/typed-buffer";
 import { FromSchema } from "@adobe/data/schema";
+import { Entity } from "@adobe/data/ecs";
 
 // Scene uniforms schema
 const SceneUniformsSchema = {
@@ -23,9 +24,8 @@ type SceneUniforms = FromSchema<typeof SceneUniformsSchema>;
 export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => {
     const { store } = service;
     
-    // Retain the struct buffer and GPU buffer
+    // Retain the struct buffer
     let structBuffer: TypedBuffer<SceneUniforms> | null = null;
-    let gpuBuffer: GPUBuffer | null = null;
     let structLayout = getStructLayout(SceneUniformsSchema);
     
     return [{
@@ -33,33 +33,26 @@ export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => 
         phase: "pre-render",
         run: () => {
             const { device } = store.resources;
-            
-            // Check if device is available
             if (!device) return;
             
-            // Get the active viewport's camera
             const activeViewportId = store.resources.activeViewport;
             const activeViewport = store.read(activeViewportId, store.archetypes.Viewport);
             if (!activeViewport) return;
 
-            const { camera } = activeViewport;
-            
-            // Calculate view-projection matrix
+            const { camera, sceneUniformsBuffer } = activeViewport;
             const viewProjection = toViewProjection(camera);
             
-            // Create struct buffer if it doesn't exist
             structBuffer ??= createStructBuffer(SceneUniformsSchema, new ArrayBuffer(structLayout.size));
 
             // Create GPU buffer if it doesn't exist
-            gpuBuffer ??= device.createBuffer({
-                size: structLayout.size,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-            });
-            store.resources.sceneUniformsBuffer = gpuBuffer;
-
-            console.log("ambientStrength", store.resources.ambientStrength);
-            console.log("lightDirection", store.resources.lightDirection);
-            console.log("lightColor", store.resources.lightColor);
+            let gpuBuffer = sceneUniformsBuffer;
+            if (!gpuBuffer) {
+                gpuBuffer = device.createBuffer({
+                    size: structLayout.size,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+                });
+                store.update(activeViewportId, { sceneUniformsBuffer: gpuBuffer });
+            }
 
             // Update the struct buffer with current values
             structBuffer.set(0, {
@@ -71,6 +64,9 @@ export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => 
 
             // Copy to GPU buffer
             copyToGPUBuffer(structBuffer, device, gpuBuffer);
+        },
+        dispose: () => {
+            structBuffer = null;
         }
     }];
 };

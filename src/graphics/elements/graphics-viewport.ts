@@ -21,6 +21,9 @@ export class HelloModelViewport extends ApplicationElement<GraphicsService> {
         :host {
             display: inline-block;
         }
+        canvas {
+            display: block;
+        }
     `;
 
     @property({ type: Object })
@@ -29,15 +32,24 @@ export class HelloModelViewport extends ApplicationElement<GraphicsService> {
     @property({ type: Array })
     clearColor: Vec4 = [0.3, 0.3, 0.3, 1.0];
 
+    @property({ type: Number })
+    width: number = 600;
+
+    @property({ type: Number })
+    height: number = 400;
+
     override render(): TemplateResult {
         const device = useObservable(this.service.database.observe.resources.device);
         const canvas = useElement("canvas");
         const [viewportId, setViewportId] = useState<Entity | null>(null);
         useEffect(() => {
             if (device && canvas) {
+                // Set canvas size
+                canvas.width = this.width;
+                canvas.height = this.height;
                 initViewport(this.service.database, device, canvas, this.clearColor, this.initialCamera).then(setViewportId);
             }
-        }, [device, canvas]);
+        }, [device, canvas, this.width, this.height]);
 
         return html`
             <canvas @click=${() => console.log("click", viewportId)}></canvas>

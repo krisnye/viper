@@ -52,6 +52,10 @@ export const graphicsStoreSchema = createStoreSchema(
          * Parent Model Entity Id.
          */
         parentId: Entity.schema,
+        /**
+         * Scene uniforms buffer for this viewport.
+         */
+        sceneUniformsBuffer: { default: null as unknown as GPUBuffer, transient: true },
 
         camera: CameraSchema,
         context: { default: null as unknown as GPUCanvasContext, transient: true },
@@ -89,7 +93,6 @@ export const graphicsStoreSchema = createStoreSchema(
         commandEncoder: { default: null as GPUCommandEncoder | null, transient: true },
         // active during render phase
         activeViewport: Entity.schema,
-        sceneUniformsBuffer: { default: null as unknown as GPUBuffer, transient: true },
 
         // typed as not null because render phase will never be called if there is no render pass encoder
         renderPassEncoder: { default: null as unknown as GPURenderPassEncoder, transient: true },
@@ -101,6 +104,7 @@ export const graphicsStoreSchema = createStoreSchema(
             "context",
             "depthTexture",
             "color",
+            "sceneUniformsBuffer",
         ],
         Model: [
             "position",

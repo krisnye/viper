@@ -118,11 +118,15 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                 );
 
                 // Create bind group and render (must be created after buffer updates in case buffers were resized)
-                if (bindGroupLayout && pipeline && store.resources.sceneUniformsBuffer && voxelPositionBuffer && voxelColorBuffer) {
+                if (bindGroupLayout && pipeline && voxelPositionBuffer && voxelColorBuffer) {
+                    const activeViewportId = store.resources.activeViewport;
+                    const activeViewport = store.read(activeViewportId, store.archetypes.Viewport);
+                    if (!activeViewport?.sceneUniformsBuffer) return;
+
                     const bindGroup = device.createBindGroup({
                         layout: bindGroupLayout,
                         entries: [
-                            { binding: 0, resource: { buffer: store.resources.sceneUniformsBuffer } },
+                            { binding: 0, resource: { buffer: activeViewport.sceneUniformsBuffer } },
                             { binding: 1, resource: { buffer: voxelPositionBuffer } },
                             { binding: 2, resource: { buffer: voxelColorBuffer } }
                         ]
