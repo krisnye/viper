@@ -117,7 +117,7 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                     voxelColorBuffer
                 );
 
-                // Create bind group and render
+                // Create bind group and render (must be created after buffer updates in case buffers were resized)
                 if (bindGroupLayout && pipeline && store.resources.sceneUniformsBuffer && voxelPositionBuffer && voxelColorBuffer) {
                     const bindGroup = device.createBindGroup({
                         layout: bindGroupLayout,

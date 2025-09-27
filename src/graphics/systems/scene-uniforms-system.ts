@@ -37,11 +37,11 @@ export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => 
             if (!device) return;
             
             // Get the active viewport's camera
-            const viewportTables = store.queryArchetypes(store.archetypes.Viewport.components);
-            if (viewportTables.length === 0) return;
+            const activeViewportId = store.resources.activeViewport;
+            const activeViewport = store.read(activeViewportId, store.archetypes.Viewport);
+            if (!activeViewport) return;
 
-            const viewportTable = viewportTables[0];
-            const camera = viewportTable.columns.camera.get(0);
+            const { camera } = activeViewport;
             
             // Calculate view-projection matrix
             const viewProjection = toViewProjection(camera);

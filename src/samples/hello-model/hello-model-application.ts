@@ -28,9 +28,9 @@ export class HelloModelGame extends HelloModelBaseElement {
                 <div>
                     Hello Model!
                 </div>
-                <graphics-viewport style="border: 1px solid red;" .initialCamera=${{ position: [0, 10, 10], target: [0, 0, 0] }} .clearColor=${[1.0, 0.0, 0.0, 0.5] as const}>
+                <graphics-viewport style="border: 1px solid red;" .initialCamera=${{ position: [5, 10, 0], target: [0, 0, 0] }} .clearColor=${[1.0, 0.0, 0.0, 0.5] as const}>
                 </graphics-viewport>
-                <graphics-viewport style="border: 1px solid blue;" .initialCamera=${{ position: [0, 0, 10], target: [0, 0, 0] }} .clearColor=${[0.0, 0.0, 1.0, 0.5] as const}>
+                <graphics-viewport style="border: 1px solid blue;" .initialCamera=${{ position: [0, 5, 10], target: [0, 0, 0] }} .clearColor=${[0.0, 0.0, 1.0, 0.5] as const}>
                 </graphics-viewport>
             </div>
         `;

@@ -31,9 +31,22 @@ const CUBE_VERTICES: array<vec3<f32>, 36> = array<vec3<f32>, 36>(
     vec3<f32>(-0.5, -0.5, -0.5), vec3<f32>( 0.5, -0.5,  0.5), vec3<f32>(-0.5, -0.5,  0.5),
 );
 
+struct VoxelPosition {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+struct VoxelColor {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
+
 @binding(0) @group(0) var<uniform> sceneUniforms: SceneUniforms;
-@binding(1) @group(0) var<storage, read> voxelPositions: array<vec3<f32>>;
-@binding(2) @group(0) var<storage, read> voxelColors: array<vec4<f32>>;
+@binding(1) @group(0) var<storage, read> voxelPositions: array<VoxelPosition>;
+@binding(2) @group(0) var<storage, read> voxelColors: array<VoxelColor>;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -48,7 +61,7 @@ fn vertexMain(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) 
     let voxelColor = voxelColors[instanceIndex];
     
     let vertex = CUBE_VERTICES[vertexIndex];
-    let worldPosition = voxelPosition + vertex; // Unit cube vertices
+    let worldPosition = vec3<f32>(voxelPosition.x, voxelPosition.y, voxelPosition.z) + vertex; // Unit cube vertices
     let clipPosition = sceneUniforms.viewProjectionMatrix * vec4<f32>(worldPosition, 1.0);
     
     // Calculate normal (simplified - using the vertex as normal for now)
@@ -56,7 +69,7 @@ fn vertexMain(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) 
     
     return VertexOutput(
         clipPosition,
-        voxelColor,
+        vec4<f32>(voxelColor.r, voxelColor.g, voxelColor.b, voxelColor.a),
         worldPosition,
         normal
     );
