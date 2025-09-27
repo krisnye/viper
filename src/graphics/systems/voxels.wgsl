@@ -90,7 +90,7 @@ fn fragmentMain(input: VertexOutput) -> FragmentOutput {
     let diffuse = lightIntensity;
     let lighting = ambient + diffuse;
     
-    let finalColor = input.color * lighting * vec4<f32>(sceneUniforms.lightColor, 1.0);
+    let finalColor = input.color * lighting;
     
     return FragmentOutput(finalColor);
 }

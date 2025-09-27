@@ -15,6 +15,7 @@ export interface MainService extends Service {
 
 export function createHelloModelMainService(): MainService {
     const store = createStoreFromSchema(helloModelStoreSchema);
+
     const database = createHelloModelDatabase(store);
     database.transactions.createAxis();
     getWebGPUDevice().then(device => {

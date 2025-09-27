@@ -3,7 +3,7 @@ import { SystemFactory } from "systems/system-factory.js";
 import { createStructGPUBuffer } from "graphics/create-struct-gpu-buffer.js";
 import { toViewProjection } from "graphics/camera/to-view-projection.js";
 import { F32, Mat4x4, Vec3 } from "@adobe/data/math";
-import { createStructBuffer, copyToGPUBuffer, TypedBuffer } from "@adobe/data/typed-buffer";
+import { createStructBuffer, copyToGPUBuffer, TypedBuffer, getStructLayout } from "@adobe/data/typed-buffer";
 import { FromSchema } from "@adobe/data/schema";
 
 // Scene uniforms schema
@@ -26,6 +26,7 @@ export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => 
     // Retain the struct buffer and GPU buffer
     let structBuffer: TypedBuffer<SceneUniforms> | null = null;
     let gpuBuffer: GPUBuffer | null = null;
+    let structLayout = getStructLayout(SceneUniformsSchema);
     
     return [{
         name: "updateSceneUniforms",
@@ -47,14 +48,18 @@ export const sceneUniformsSystem: SystemFactory<GraphicsService> = (service) => 
             const viewProjection = toViewProjection(camera);
             
             // Create struct buffer if it doesn't exist
-            structBuffer ??= createStructBuffer(SceneUniformsSchema, new ArrayBuffer(1024)); // Allocate enough space
+            structBuffer ??= createStructBuffer(SceneUniformsSchema, new ArrayBuffer(structLayout.size));
 
             // Create GPU buffer if it doesn't exist
             gpuBuffer ??= device.createBuffer({
-                size: 1024, // Same size as struct buffer
+                size: structLayout.size,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
             });
             store.resources.sceneUniformsBuffer = gpuBuffer;
+
+            console.log("ambientStrength", store.resources.ambientStrength);
+            console.log("lightDirection", store.resources.lightDirection);
+            console.log("lightColor", store.resources.lightColor);
 
             // Update the struct buffer with current values
             structBuffer.set(0, {
