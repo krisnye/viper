@@ -3,4 +3,6 @@ export type SystemPhase =
     | "input"
     | "update"
     | "physics"
-    | "render";
+    | "pre-render"
+    | "render"
+    | "post-render";

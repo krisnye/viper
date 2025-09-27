@@ -86,9 +86,11 @@ export const graphicsStoreSchema = createStoreSchema(
         lightColor: { ...Vec3.schema, default: [1.2, 1.2, 1.2] },
         // valid during update phase
         updateFrame: FrameSchema,
-        // valid during preRender phase
-        activeViewport: Entity.schema,
         commandEncoder: { default: null as GPUCommandEncoder | null, transient: true },
+        // active during render phase
+        activeViewport: Entity.schema,
+        sceneUniformsBuffer: { default: null as unknown as GPUBuffer, transient: true },
+
         // typed as not null because render phase will never be called if there is no render pass encoder
         renderPassEncoder: { default: null as unknown as GPURenderPassEncoder, transient: true },
         renderFrame: FrameSchema,

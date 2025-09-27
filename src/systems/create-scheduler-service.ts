@@ -88,7 +88,9 @@ export function createSystemSchedulerService<T extends GraphicsStore>(store: T):
                     store.resources.activeViewport = viewportId;
                     store.resources.renderPassEncoder = renderPassEncoder;
 
+                    await runPhase("pre-render");
                     await runPhase("render");
+                    await runPhase("post-render");
 
                     renderPassEncoder.end();
                 }
