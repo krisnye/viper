@@ -5,6 +5,8 @@ import { Camera, CameraSchema } from "graphics/camera/camera.js";
 import { Schema } from "@adobe/data/schema";
 import { Assert, Equal } from "@adobe/data/types";
 import { Rgba, Volume } from "data/index.js";
+import { KeyCode } from "ui/types/key-code.js";
+import { KeyState } from "ui/types/input-state.js";
 
 export const graphicsStoreSchema = createStoreSchema(
     {
@@ -97,6 +99,12 @@ export const graphicsStoreSchema = createStoreSchema(
         // typed as not null because render phase will never be called if there is no render pass encoder
         renderPassEncoder: { default: null as unknown as GPURenderPassEncoder, transient: true },
         renderFrame: FrameSchema,
+        
+        // Input state
+        pressedKeys: {
+            mutable: true,
+            default: {} as Partial<Record<KeyCode, KeyState>>,
+        },
     },
     {
         Viewport: [
