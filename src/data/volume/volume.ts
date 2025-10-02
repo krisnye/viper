@@ -18,3 +18,7 @@ export const index = <T>(volume: Volume<T>, x: number, y: number, z: number): nu
     const [width, height] = volume.size;
     return x + width * (y + z * height);
 }
+
+export const create = <T>(volume: Volume<T>): Volume<T> => {
+    return volume;
+}

@@ -59,16 +59,24 @@ struct VoxelPosition {
     z: f32,
 }
 
-struct VoxelColor {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
+struct VoxelScale {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+struct VoxelRotation {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 }
 
 @binding(0) @group(0) var<uniform> sceneUniforms: SceneUniforms;
 @binding(1) @group(0) var<storage, read> voxelPositions: array<VoxelPosition>;
-@binding(2) @group(0) var<storage, read> voxelColors: array<VoxelColor>;
+@binding(2) @group(0) var<storage, read> voxelColors: array<vec4<f32>>;
+@binding(3) @group(0) var<storage, read> voxelScales: array<VoxelScale>;
+@binding(4) @group(0) var<storage, read> voxelRotations: array<VoxelRotation>;
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -77,23 +85,40 @@ struct VertexOutput {
     @location(2) normal: vec3<f32>,
 }
 
+// Rotate a vector by a quaternion
+// q is quaternion (x, y, z, w), v is the vector to rotate
+fn rotateByQuaternion(v: vec3<f32>, q: vec4<f32>) -> vec3<f32> {
+    let qxyz = vec3<f32>(q.x, q.y, q.z);
+    let t = 2.0 * cross(qxyz, v);
+    return v + q.w * t + cross(qxyz, t);
+}
+
 @vertex
 fn vertexMain(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexOutput {
     let voxelPosition = voxelPositions[instanceIndex];
     let voxelColor = voxelColors[instanceIndex];
+    let voxelScale = voxelScales[instanceIndex];
+    let voxelRotation = voxelRotations[instanceIndex];
     
-    let vertex = CUBE_VERTICES[vertexIndex];
-    let worldPosition = vec3<f32>(voxelPosition.x, voxelPosition.y, voxelPosition.z) + vertex; // Unit cube vertices
+    // Apply scale first
+    let scaledVertex = CUBE_VERTICES[vertexIndex] * vec3(voxelScale.x, voxelScale.y, voxelScale.z);
+    
+    // Then apply rotation
+    let quaternion = vec4<f32>(voxelRotation.x, voxelRotation.y, voxelRotation.z, voxelRotation.w);
+    let rotatedVertex = rotateByQuaternion(scaledVertex, quaternion);
+    
+    // Finally add position
+    let worldPosition = vec3<f32>(voxelPosition.x, voxelPosition.y, voxelPosition.z) + rotatedVertex;
     let clipPosition = sceneUniforms.viewProjectionMatrix * vec4<f32>(worldPosition, 1.0);
     
-    // Use proper face normal
-    let normal = CUBE_NORMALS[vertexIndex];
+    // Rotate the normal as well
+    let rotatedNormal = rotateByQuaternion(CUBE_NORMALS[vertexIndex], quaternion);
     
     return VertexOutput(
         clipPosition,
         vec4<f32>(voxelColor.r, voxelColor.g, voxelColor.b, voxelColor.a),
         worldPosition,
-        normal
+        rotatedNormal
     );
 }
 

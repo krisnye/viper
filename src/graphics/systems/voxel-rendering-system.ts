@@ -1,16 +1,15 @@
 import { GraphicsService } from "graphics/graphics-service.js";
 import { SystemFactory } from "systems/system-factory.js";
 import { createStructGPUBuffer } from "graphics/create-struct-gpu-buffer.js";
-import { toViewProjection } from "graphics/camera/to-view-projection.js";
-import { Vec3, Vec4, F32, Mat4x4 } from "@adobe/data/math";
-import { F32Schema } from "@adobe/data/schema";
+import { Vec3, Vec4, Quat } from "@adobe/data/math";
 import shaderSource from './voxels.wgsl?raw';
 import { copyColumnToGPUBuffer } from "@adobe/data/table";
 
 // Schema for voxel data structures
 const VoxelPositionSchema = Vec3.schema;
 const VoxelColorSchema = Vec4.schema;
-
+const VoxelScaleSchema = Vec3.schema;
+const VoxelRotationSchema = Quat.schema;
 
 export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) => {
     const { store } = service;
@@ -20,7 +19,8 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
     let pipeline: GPURenderPipeline | null = null;
     let voxelPositionBuffer: GPUBuffer | null = null;
     let voxelColorBuffer: GPUBuffer | null = null;
-    
+    let voxelScaleBuffer: GPUBuffer | null = null;
+    let voxelRotationBuffer: GPUBuffer | null = null;
 
     return [{
         name: "renderVoxels",
@@ -48,7 +48,17 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                         binding: 2,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: { type: 'read-only-storage' }
-                    }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { type: 'read-only-storage' }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { type: 'read-only-storage' }
+                    },
                 ]
             });
 
@@ -76,24 +86,37 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                 }
             });
 
-                // Initialize buffers only if they don't exist
-                voxelPositionBuffer ??= createStructGPUBuffer({
-                    device,
-                    schema: VoxelPositionSchema,
-                    elements: [],
-                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-                });
+            // Initialize buffers only if they don't exist
+            voxelPositionBuffer ??= createStructGPUBuffer({
+                device,
+                schema: VoxelPositionSchema,
+                elements: [],
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
 
-                voxelColorBuffer ??= createStructGPUBuffer({
-                    device,
-                    schema: VoxelColorSchema,
-                    elements: [],
-                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-                });
+            voxelColorBuffer ??= createStructGPUBuffer({
+                device,
+                schema: VoxelColorSchema,
+                elements: [],
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+
+            voxelScaleBuffer ??= createStructGPUBuffer({
+                device,
+                schema: VoxelScaleSchema,
+                elements: [],
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+
+            voxelRotationBuffer ??= createStructGPUBuffer({
+                device,
+                schema: VoxelRotationSchema,
+                elements: [],
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
 
             // Query for voxel entities using the Particle archetype
             const voxelTables = store.queryArchetypes(store.archetypes.Particle.components);
-            
             if (voxelTables.length === 0) {
                 return;
             }
@@ -117,6 +140,20 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                     voxelColorBuffer
                 );
 
+                voxelScaleBuffer = copyColumnToGPUBuffer(
+                    voxelTables,
+                    "scale",
+                    device,
+                    voxelScaleBuffer
+                );
+
+                voxelRotationBuffer = copyColumnToGPUBuffer(
+                    voxelTables,
+                    "rotation",
+                    device,
+                    voxelRotationBuffer
+                );
+
                 // Create bind group and render (must be created after buffer updates in case buffers were resized)
                 if (bindGroupLayout && pipeline && voxelPositionBuffer && voxelColorBuffer) {
                     const activeViewportId = store.resources.activeViewport;
@@ -128,7 +165,9 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                         entries: [
                             { binding: 0, resource: { buffer: activeViewport.sceneUniformsBuffer } },
                             { binding: 1, resource: { buffer: voxelPositionBuffer } },
-                            { binding: 2, resource: { buffer: voxelColorBuffer } }
+                            { binding: 2, resource: { buffer: voxelColorBuffer } },
+                            { binding: 3, resource: { buffer: voxelScaleBuffer } },
+                            { binding: 4, resource: { buffer: voxelRotationBuffer } }
                         ]
                     });
 
@@ -148,6 +187,16 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
             if (voxelColorBuffer) {
                 voxelColorBuffer.destroy();
                 voxelColorBuffer = null;
+            }
+
+            if (voxelScaleBuffer) {
+                voxelScaleBuffer.destroy();
+                voxelScaleBuffer = null;
+            }
+
+            if (voxelRotationBuffer) {
+                voxelRotationBuffer.destroy();
+                voxelRotationBuffer = null;
             }
             
             // Note: bindGroupLayout and pipeline don't need explicit disposal

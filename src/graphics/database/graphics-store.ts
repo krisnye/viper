@@ -1,6 +1,6 @@
 import { Vec3, Aabb, Quat, F32, Vec4 } from "@adobe/data/math";
 import { createStoreSchema, Entity, StoreFromSchema } from "@adobe/data/ecs";
-import { Frame, FrameSchema } from "graphics/frame.js";
+import { FrameSchema } from "graphics/frame.js";
 import { Camera, CameraSchema } from "graphics/camera/camera.js";
 import { Schema } from "@adobe/data/schema";
 import { Assert, Equal } from "@adobe/data/types";
@@ -54,6 +54,7 @@ export const graphicsStoreSchema = createStoreSchema(
          * Parent Model Entity Id.
          */
         parentId: Entity.schema,
+        centerOfMass: Vec3.schema,
         /**
          * Scene uniforms buffer for this viewport.
          */
@@ -63,13 +64,9 @@ export const graphicsStoreSchema = createStoreSchema(
         context: { default: null as unknown as GPUCanvasContext, transient: true },
         depthTexture: { default: null as unknown as GPUTexture, transient: true },
 
-        /**
-         * Voxel Model Entity Id.
-         */
-        voxelModelId: Entity.schema,
-        voxelModelCenter: Vec3.schema,
-        voxelModelColor: { default: null as unknown as Volume<Rgba> },
+        modelId: Entity.schema,
 
+        voxelColor: { default: null as unknown as Volume<Rgba> },
     },
     {
         device: { default: null as GPUDevice | null, transient: true },
@@ -114,12 +111,15 @@ export const graphicsStoreSchema = createStoreSchema(
             "color",
             "sceneUniformsBuffer",
         ],
-        Model: [
+        VoxelModel: [
             "position",
+            "voxelColor"
         ],
         Particle: [
             "position",
             "color",
+            "scale",
+            "rotation",
         ]
     },
 );

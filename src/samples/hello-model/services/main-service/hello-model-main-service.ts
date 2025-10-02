@@ -17,7 +17,11 @@ export function createHelloModelMainService(): MainService {
     const store = createStoreFromSchema(helloModelStoreSchema);
 
     const database = createHelloModelDatabase(store);
-    database.transactions.createAxis();
+
+    // creating some test data
+    database.transactions.createTestModels();
+    console.log(store.toData());
+
     getWebGPUDevice().then(device => {
         database.transactions.setDevice(device);
     })
@@ -29,7 +33,6 @@ export function createHelloModelMainService(): MainService {
         database,
         scheduler,
     };
-    systemFactories
 
     scheduler.addSystems(Object.values(systemFactories).map(factory => factory(mainService)).flat());
     scheduler.setRunning(true);
