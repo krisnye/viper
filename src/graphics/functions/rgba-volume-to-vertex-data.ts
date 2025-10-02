@@ -55,7 +55,7 @@ function setVertexPosition(position: Mutable<Vec3>, x: number, y: number, z: num
 interface FaceData {
     x: number; y: number; z: number;
     dx: number; dy: number; dz: number; // normal direction
-    colorVec4: Vec4; // Pre-converted color
+    color: Vec4; // Pre-converted color
 }
 
 export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<PositionColorNormalVertex> {
@@ -94,7 +94,7 @@ export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<Positi
                     const isEmpty = !isBoundary && !Rgba.isVisible(volume.data.get(index(volume, nx, ny, nz)));
                     
                     if (isBoundary || isEmpty) {
-                        faces[faceCount++] = { x, y, z, dx, dy, dz, colorVec4 };
+                        faces[faceCount++] = { x, y, z, dx, dy, dz, color: colorVec4 };
                     }
                 }
             }
@@ -108,9 +108,14 @@ export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<Positi
     // Second pass: generate vertices
     let vertexIndex = 0;
     
-    // Reusable arrays to avoid allocations
+    // Reusable arrays and vertex object to avoid ALL allocations
     const position: Mutable<Vec3> = [0, 0, 0];
     const normal: Mutable<Vec3> = [0, 0, 0];
+    const vertex: Mutable<PositionColorNormalVertex> = {
+        position: position,
+        normal: normal,
+        color: [0, 0, 0, 1]
+    };
     
     // Only iterate over initialized faces
     for (let i = 0; i < faceCount; i++) {
@@ -119,7 +124,8 @@ export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<Positi
         
         // Set normal once per face (reuse array)
         normal[0] = face.dx; normal[1] = face.dy; normal[2] = face.dz;
-        
+        vertex.color = face.color as [number, number, number, number]; // Set color once per face
+
         // Use pre-computed quad indices based on face direction
         // Direct integer index - no string operations!
         const normalIndex = getNormalIndex(face.dx, face.dy, face.dz);
@@ -131,39 +137,25 @@ export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<Positi
         // Pre-calculate the offset values for efficiency
         const x1 = face.x + 1, y1 = face.y + 1, z1 = face.z + 1;
         
-        // Triangle 1: v0, v1, v2
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v0I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v1I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v2I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
+        // Triangle 1: v0, v1, v2 (zero object allocations!)
+        setVertexPosition(position, face.x, face.y, face.z, v0I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
         
-        // Triangle 2: v0, v2, v3
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v0I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v2I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
-        vertexBuffer.set(vertexIndex++, {
-            position: setVertexPosition(position, face.x, face.y, face.z, v3I, x1, y1, z1),
-            normal,
-            color: face.colorVec4
-        });
+        setVertexPosition(position, face.x, face.y, face.z, v1I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
+        
+        setVertexPosition(position, face.x, face.y, face.z, v2I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
+        
+        // Triangle 2: v0, v2, v3 (zero object allocations!)
+        setVertexPosition(position, face.x, face.y, face.z, v0I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
+        
+        setVertexPosition(position, face.x, face.y, face.z, v2I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
+        
+        setVertexPosition(position, face.x, face.y, face.z, v3I, x1, y1, z1);
+        vertexBuffer.set(vertexIndex++, vertex);
     }
     
     return vertexBuffer;
