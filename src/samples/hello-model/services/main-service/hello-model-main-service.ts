@@ -20,7 +20,6 @@ export function createHelloModelMainService(): MainService {
 
     // creating some test data
     database.transactions.createTestModels();
-    console.log(store.toData());
 
     getWebGPUDevice().then(device => {
         database.transactions.setDevice(device);

@@ -3,6 +3,7 @@ import { GraphicsStore } from "../database/graphics-store.js";
 import { rgbaVolumeToVertexData } from "../functions/rgba-volume-to-vertex-data.js";
 import { GraphicsService } from "graphics/graphics-service.js";
 import { copyToGPUBuffer } from "@adobe/data/typed-buffer";
+import { Rgba, Volume } from "data/index.js";
 
 /**
  * System that manages voxel vertex buffers for VoxelModel entities.
@@ -16,69 +17,94 @@ import { copyToGPUBuffer } from "@adobe/data/typed-buffer";
 export const voxelVertexBufferSystem : SystemFactory<GraphicsService> = (service) => {
     // Get all VoxelModel tables - following the pattern from other systems
     const { store } = service;
+    
+    // Cache for shared GPUBuffers - retained across system calls
+    const bufferCache = new Map<Volume<Rgba>, {
+        buffer: GPUBuffer;
+        refCount: number;
+        source: any;
+    }>();
+    
+    // Track which entities are using which cache entries
+    const entityToCacheKey = new Map<number, any>();
 
     return [{
         name: "voxelVertexBufferSystem",
         phase: "update",
         run: () => {
-            const voxelTables = store.queryArchetypes(store.archetypes.VoxelModel.components);
-            for (const table of voxelTables) {
-                const entityIds = table.columns.id.getTypedArray();
-                for (let i = 0; i < table.rowCount; i++) {
-                    const entityId = entityIds[i];
-                    const voxelColor = table.columns.voxelColor.get(i);
-                    const existingComputedBuffer = store.get(entityId, "voxelVertexBuffer");
-                    const needsUpdate = existingComputedBuffer?.source !== voxelColor;
-                    if (needsUpdate) {
-                        existingComputedBuffer?.buffer?.destroy()
-                        updateVoxelVertexBuffer(store, entityId, voxelColor);
-                    }
-                }
-            }
+             const voxelTables = store.queryArchetypes(store.archetypes.VoxelModel.components);
+             for (const table of voxelTables) {
+                 const entityIds = table.columns.id.getTypedArray();
+                 for (let i = 0; i < table.rowCount; i++) {
+                     const entityId = entityIds[i];
+                     const voxelColor = table.columns.voxelColor.get(i);
+                     
+                     if (!voxelColor) continue;
+                     
+                     // Check if entity has changed volume (object identity)
+                     const cacheKey = voxelColor;
+                     const oldCacheKey = entityToCacheKey.get(entityId);
+                     
+                     if (oldCacheKey !== cacheKey) {
+                         // Volume changed - update cache reference
+                         if (oldCacheKey !== undefined) {
+                             // Release old cache entry
+                             const oldEntry = bufferCache.get(oldCacheKey);
+                             if (oldEntry) {
+                                 oldEntry.refCount--;
+                                 if (oldEntry.refCount === 0) {
+                                     oldEntry.buffer.destroy();
+                                     bufferCache.delete(oldCacheKey);
+                                 }
+                             }
+                         }
+                         
+                         // Get or create cached buffer
+                         let cacheEntry = bufferCache.get(cacheKey);
+                         if (!cacheEntry) {
+                             const device = store.resources.device;
+                             if (!device) continue; // Skip if no device
+                             
+                             cacheEntry = {
+                                 buffer: createVertexBufferFromVolume(device, voxelColor),
+                                 refCount: 0,
+                                 source: voxelColor
+                             };
+                             bufferCache.set(cacheKey, cacheEntry);
+                         }
+                         
+                         // Update entity assignment
+                         cacheEntry.refCount++;
+                         entityToCacheKey.set(entityId, cacheKey);
+                         
+                         store.update(entityId, { 
+                             modelVertexBuffer: cacheEntry.buffer,
+                             voxelVertexSource: voxelColor
+                         });
+                     }
+                 }
+             }
         }
     }]
 }
 
 /**
- * Update the voxel vertex buffer for an entity.
- * Creates a new WebGPU buffer from the voxel color volume data.
+ * Create vertex buffer from volume (used by cache system)
  */
-function updateVoxelVertexBuffer(
-    store: GraphicsStore, 
-    entityId: number, 
-    voxelColor: any
-): void {
-    const device = store.resources.device;
-    
-    if (!device) {
-        return;
-    }
-    
+function createVertexBufferFromVolume(device: GPUDevice, voxelColor: any): GPUBuffer {
     // Convert voxel volume to vertex data
     const vertexData = rgbaVolumeToVertexData(voxelColor);
     
-    // Check if we have an existing buffer to reuse, otherwise create a new placeholder
-    const existingBuffer = store.get(entityId, "voxelVertexBuffer")?.buffer;
-    let gpuBuffer = existingBuffer;
-    
-    // If no existing buffer, create a new one with proper usage flags
-    if (!gpuBuffer) {
-        const dataArray = vertexData.getTypedArray();
-        gpuBuffer = device.createBuffer({
-            size: dataArray.byteLength,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: false
-        });
-    }
+    // Create new buffer for copyToGPUBuffer to work with
+    const dataArray = vertexData.getTypedArray();
+    const gpuBuffer = device.createBuffer({
+        size: dataArray.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        mappedAtCreation: false
+    });
     
     // Use the efficient copyToGPUBuffer utility
     const finalBuffer = copyToGPUBuffer(vertexData, device, gpuBuffer);
     
-    // Store the computed buffer (includes buffer + source for change tracking)
-    store.update(entityId, { voxelVertexBuffer: {
-        buffer: finalBuffer,
-        source: voxelColor
-    } });
-    
-    console.log(`Created vertex buffer for entity ${entityId}: ${finalBuffer.size} bytes`);
+    return finalBuffer;
 }

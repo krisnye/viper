@@ -1,4 +1,4 @@
-import { Vec3, Vec4 } from "@adobe/data/math";
+import { Quat, Vec3, Vec4 } from "@adobe/data/math";
 import { createTypedBuffer } from "@adobe/data/typed-buffer";
 import { Rgba, Volume } from "data/index.js";
 import { index } from "data/volume/volume.js";
@@ -7,6 +7,8 @@ import { createVoxelModel } from "./create-voxel-model.js";
 
 export function createCircleModel(t: GraphicsStore, props: {
     position: Vec3,
+    scale: Vec3,
+    rotation: Quat,
     color: Vec4,
     radius: number,
 }) {
@@ -32,7 +34,7 @@ export function createCircleModel(t: GraphicsStore, props: {
     }
     
     return createVoxelModel(t, {
-        position: props.position,
+        ...props,
         voxelColor: volume
     });
 }

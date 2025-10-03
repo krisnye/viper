@@ -67,6 +67,9 @@ export const graphicsStoreSchema = createStoreSchema(
         modelId: Entity.schema,
 
         voxelColor: { default: null as unknown as Volume<Rgba> },
+        modelVertexBuffer: { default: null as unknown as GPUBuffer },
+        modelVertexCount: { default: 0 },
+        voxelVertexSource: { default: null as unknown as Volume<Rgba> },
     },
     {
         device: { default: null as GPUDevice | null, transient: true },
@@ -113,6 +116,8 @@ export const graphicsStoreSchema = createStoreSchema(
         ],
         VoxelModel: [
             "position",
+            "scale",
+            "rotation",
             "voxelColor"
         ],
         Particle: [
@@ -120,6 +125,12 @@ export const graphicsStoreSchema = createStoreSchema(
             "color",
             "scale",
             "rotation",
+        ],
+        RenderModel: [
+            "position",
+            "scale",
+            "rotation",
+            "modelVertexBuffer",
         ]
     },
 );

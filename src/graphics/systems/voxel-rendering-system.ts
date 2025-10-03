@@ -27,9 +27,8 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
         phase: "render",
         run: () => {
             const { device, renderPassEncoder } = store.resources;
-            
-            // Check if device is available
-            if (!device) return;
+            const activeViewport = store.read(store.resources.activeViewport, store.archetypes.Viewport);
+            if (!device || !renderPassEncoder || !activeViewport) return;
             
             // Initialize resources only if they don't exist
             bindGroupLayout ??= device.createBindGroupLayout({
@@ -82,7 +81,7 @@ export const voxelRenderingSystem: SystemFactory<GraphicsService> = (service) =>
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less-equal',
-                    format: 'depth24plus'
+                    format: activeViewport.depthTexture.format
                 }
             });
 

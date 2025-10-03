@@ -3,6 +3,7 @@ import { createCircleModel } from "./create-circle-model.js";
 import { graphicsStoreSchema } from "../graphics-store.js";
 import { createStoreFromSchema } from "@adobe/data/ecs";
 import { index } from "data/volume/volume.js";
+import { Quat } from "@adobe/data/math";
 
 describe("createCircleModel", () => {
     test("creates circles with different radii", () => {
@@ -13,7 +14,9 @@ describe("createCircleModel", () => {
             const entity = createCircleModel(store, {
                 position: [0, 0, 0],
                 color: [1, 0, 0, 1],
-                radius
+                radius,
+                scale: [0.25, 0.25, 0.25],
+                rotation: Quat.identity()
             });
             
             expect(entity).toBeGreaterThan(0);
@@ -34,7 +37,9 @@ describe("createCircleModel", () => {
         const entity = createCircleModel(store, {
             position: [0, 0, 0],
             color: [1, 0, 0, 1],
-            radius
+            radius,
+            scale: [1, 1, 1],
+            rotation: Quat.identity()
         });
         
         const volume = store.read(entity)!.voxelColor;

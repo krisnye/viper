@@ -103,7 +103,7 @@ export function rgbaVolumeToVertexData(volume: Volume<Rgba>): TypedBuffer<Positi
 
     // Create vertex buffer with precise capacity (6 vertices per face)
     const vertexCount = faceCount * 6; // 2 triangles per face, 3 vertices per triangle
-    const vertexBuffer = createStructBuffer(positionColorNormalVertexSchema, vertexCount, "packed");
+    const vertexBuffer = createStructBuffer(positionColorNormalVertexSchema, vertexCount);
     
     // Second pass: generate vertices
     let vertexIndex = 0;
