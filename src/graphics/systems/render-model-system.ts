@@ -74,7 +74,6 @@ export const renderModelSystem : SystemFactory<GraphicsService> = (service) => {
                 // Extract per-entity data directly
                 for (let i = 0; i < entityCount; i++) {
                     const vertexBuffer = table.columns.modelVertexBuffer.get(i);
-                    // console.log(`found vertex buffer ${vertexBuffer.size}`);
                     const position = table.columns.position.get(i);
                     const scale = table.columns.scale.get(i);
                     const rotation = table.columns.rotation.get(i);
@@ -165,7 +164,6 @@ export const renderModelSystem : SystemFactory<GraphicsService> = (service) => {
                 
                 // Populate instance data
                 for (let i = 0; i < group.instanceCount; i++) {
-                    console.log(`Instance ${i}: position=[${group.positions[i].join(',')}], scale=[${group.scales[i].join(',')}], rotation=[${group.rotations[i].join(',')}]`);
                     instanceDataBuffer.set(i, {
                         position: group.positions[i],
                         scale: group.scales[i],
